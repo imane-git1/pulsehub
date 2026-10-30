@@ -50,8 +50,14 @@ describe('decodeFrame', () => {
   it('rejette une trame trop longue', () => {
     expect(decodeFrame(Buffer.alloc(513))).toEqual({ ok: false, error: 'too_long' });
   });
-  it('rejette une longueur incohérente avec count', () => {
-    expect(mutate((b) => b.subarray(0, 15))).toEqual({ ok: false, error: 'bad_length' });
+    it('rejette une longueur incohérente avec count', () => {
+    expect(mutate((b) => Buffer.concat([b, Buffer.from([0x00])]))).toEqual({
+      ok: false,
+      error: 'bad_length',
+    });
+  });
+  it('rejette une trame tronquée sous la taille minimale', () => {
+    expect(mutate((b) => b.subarray(0, 15))).toEqual({ ok: false, error: 'too_short' });
   });
   it('rejette deviceId = 0', () => {
     const f = encodeFrame({ ...telemetry, deviceId: 0 });
