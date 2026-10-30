@@ -42,6 +42,7 @@ export interface FleetSnapshot {
     invalidByCause: Record<string, number>;
     lossRate: number; // pertes / (acceptées + pertes), entre 0 et 1
     framesPerSecond: number;
+    restarts: number;
   };
   devices: FleetCounts;
   list: DeviceSnapshot[];
@@ -62,6 +63,7 @@ export class FleetSummary {
   private accepted = 0;
   private discarded = 0;
   private lost = 0;
+  private restarts = 0;
   private invalid = 0;
   private readonly invalidByCause = new Map<string, number>();
   private readonly devices = new Map<number, DeviceState>();
@@ -81,6 +83,7 @@ export class FleetSummary {
     }
     this.accepted++;
     this.lost += verdict.lost;
+    if (verdict.restarted) this.restarts++;
     this.countInRate(now);
 
     const device = this.devices.get(frame.deviceId) ?? this.createDevice(frame.deviceId, now);
@@ -120,6 +123,7 @@ export class FleetSummary {
         invalidByCause: Object.fromEntries(this.invalidByCause),
         lossRate: expected === 0 ? 0 : this.lost / expected,
         framesPerSecond: this.rate(now),
+        restarts: this.restarts,
       },
       devices: counts,
       list,
