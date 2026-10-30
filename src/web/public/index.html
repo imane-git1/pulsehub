@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PulseHub</title>
+<style>
+  :root {
+    --bg: #0f1419; --panel: #1a212b; --text: #e6edf3; --muted: #8b98a5;
+    --ok: #2ea043; --hot: #f85149; --silent: #d29922; --offline: #484f58;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 20px; background: var(--bg); color: var(--text);
+         font: 14px/1.4 system-ui, sans-serif; }
+  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  h1 { margin: 0; font-size: 20px; }
+  #conn { font-size: 12px; padding: 4px 10px; border-radius: 12px; background: var(--offline); }
+  #conn.up { background: var(--ok); }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 22px 0 8px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .card { background: var(--panel); border-radius: 8px; padding: 12px 14px; border-top: 3px solid var(--offline); }
+  .card.ok { border-color: var(--ok); } .card.hot { border-color: var(--hot); }
+  .card.silent { border-color: var(--silent); } .card.offline { border-color: var(--offline); }
+  .card.warn { border-color: var(--silent); }
+  .label { color: var(--muted); font-size: 12px; }
+  .value { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .sub { color: var(--muted); font-size: 12px; min-height: 17px; }
+  #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 8px; }
+  .tile { border-radius: 6px; padding: 8px; background: var(--ok); color: #fff; display: flex;
+          flex-direction: column; font-variant-numeric: tabular-nums; }
+  .tile.hot { background: var(--hot); } .tile.silent { background: var(--silent); }
+  .tile.offline { background: var(--offline); }
+  .tile b { font-size: 13px; } .tile span { font-size: 12px; opacity: .9; }
+  .empty { color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>PulseHub</h1>
+  <span id="conn">connexion…</span>
+</header>
+
+<h2>Santé de la réception</h2>
+<div class="cards">
+  <div class="card"><div class="label">Débit</div><div class="value"><span id="rate">0</span> <small>tr/s</small></div></div>
+  <div class="card ok"><div class="label">Acceptées</div><div class="value" id="accepted">0</div></div>
+  <div class="card"><div class="label">Écartées (doublons / retards)</div><div class="value" id="discarded">0</div></div>
+  <div class="card warn"><div class="label">Perdues</div><div class="value" id="lost">0</div><div class="sub" id="loss">0.0 %</div></div>
+  <div class="card hot"><div class="label">Invalides</div><div class="value" id="invalid">0</div><div class="sub" id="causes">—</div></div>
+</div>
+
+<h2>Flotte (<span id="total">0</span> appareils)</h2>
+<div class="cards">
+  <div class="card ok"><div class="label">OK</div><div class="value" id="n-ok">0</div></div>
+  <div class="card hot"><div class="label">Chauds</div><div class="value" id="n-hot">0</div></div>
+  <div class="card silent"><div class="label">Silencieux</div><div class="value" id="n-silent">0</div></div>
+  <div class="card offline"><div class="label">Hors-ligne</div><div class="value" id="n-offline">0</div></div>
+</div>
+
+<h2>Appareils</h2>
+<div id="grid"><p class="empty">Aucun appareil reçu</p></div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n) => n.toLocaleString('fr-FR');
+  const num = (v, digits, unit) => (v === null ? '—' : v.toFixed(digits) + ' ' + unit);
+
+  function tile(d) {
+    const title = `Tension ${num(d.voltageV, 2, 'V')} · Courant ${num(d.currentA, 2, 'A')} · ` +
+      `vu il y a ${(d.lastSeenAgoMs / 1000).toFixed(1)} s · pertes ${d.framesLost}`;
+    return `<div class="tile ${d.status}" title="${title}"><b>#${d.deviceId}</b>` +
+      `<span>${num(d.temperatureC, 1, '°C')}</span></div>`;
+  }
+
+  function render(s) {
+    const r = s.reception;
+    $('rate').textContent = r.framesPerSecond.toFixed(0);
+    $('accepted').textContent = fmt(r.accepted);
+    $('discarded').textContent = fmt(r.discarded);
+    $('lost').textContent = fmt(r.lost);
+    $('loss').textContent = (r.lossRate * 100).toFixed(1) + ' % de pertes';
+    $('invalid').textContent = fmt(r.invalid);
+    $('causes').textContent =
+      Object.entries(r.invalidByCause).map(([k, v]) => `${k} : ${fmt(v)}`).join(' · ') || '—';
+
+    $('total').textContent = s.devices.total;
+    for (const k of ['ok', 'hot', 'silent', 'offline']) $('n-' + k).textContent = s.devices[k];
+
+    $('grid').innerHTML = s.list.length
+      ? s.list.map(tile).join('')
+      : '<p class="empty">Aucun appareil reçu</p>';
+  }
+
+  const conn = $('conn');
+  const source = new EventSource('/events'); // se reconnecte tout seul en cas de coupure
+  source.onopen = () => { conn.textContent = 'connecté'; conn.className = 'up'; };
+  source.onerror = () => { conn.textContent = 'déconnecté, reconnexion…'; conn.className = ''; };
+  source.onmessage = (e) => render(JSON.parse(e.data));
+</script>
+</body>
+</html>
