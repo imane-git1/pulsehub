@@ -47,6 +47,7 @@
   <div class="card"><div class="label">Écartées (doublons / retards)</div><div class="value" id="discarded">0</div></div>
   <div class="card warn"><div class="label">Perdues</div><div class="value" id="lost">0</div><div class="sub" id="loss">0.0 %</div></div>
   <div class="card hot"><div class="label">Invalides</div><div class="value" id="invalid">0</div><div class="sub" id="causes">—</div></div>
+  <div class="card silent"><div class="label">Redémarrages d'appareils</div><div class="value" id="restarts">0</div></div>
 </div>
 
 <h2>Flotte (<span id="total">0</span> appareils)</h2>
@@ -80,6 +81,7 @@
     $('lost').textContent = fmt(r.lost);
     $('loss').textContent = (r.lossRate * 100).toFixed(1) + ' % de pertes';
     $('invalid').textContent = fmt(r.invalid);
+    $('restarts').textContent = fmt(r.restarts);
     $('causes').textContent =
       Object.entries(r.invalidByCause).map(([k, v]) => `${k} : ${fmt(v)}`).join(' · ') || '—';
 
