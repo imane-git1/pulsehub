@@ -7,6 +7,7 @@ export interface HubConfig {
   httpPort: number;
   snapshotIntervalMs: number;
   summary: SummaryOptions;
+  restartToleranceMs: number;
 }
 
 function envNumber(env: NodeJS.ProcessEnv, name: string, fallback: number): number {
@@ -31,5 +32,6 @@ export function loadHubConfig(env: NodeJS.ProcessEnv = process.env): HubConfig {
       offlineAfterMs: envNumber(env, 'OFFLINE_AFTER_MS', 10000),
       rateWindowSeconds: envNumber(env, 'RATE_WINDOW_S', 5),
     },
+    restartToleranceMs: envNumber(env, 'RESTART_TOLERANCE_MS', 1000),
   };
 }
