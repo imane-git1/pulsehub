@@ -1,0 +1,33 @@
+{
+  "name": "pulsehub",
+  "version": "1.0.0",
+  "description": "Hub de télémétrie UDP et simulateur d'appareils",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "hub": "tsx src/hub/main.ts",
+    "sim": "tsx src/simulator/main.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/imane-git1/pulsehub.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/imane-git1/pulsehub/issues"
+  },
+  "homepage": "https://github.com/imane-git1/pulsehub#readme",
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}
