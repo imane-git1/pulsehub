@@ -5,12 +5,12 @@ import { Sequencer } from './sequencer';
 import { UdpReceiver } from './udp-receiver';
 
 const config = loadHubConfig();
-const sequencer = new Sequencer();
+const sequencer = new Sequencer(config.restartToleranceMs);
 const summary = new FleetSummary(config.summary);
 
 const receiver = new UdpReceiver({
   onFrame: (frame) =>
-    summary.recordFrame(frame, sequencer.check(frame.deviceId, frame.seq), Date.now()),
+    summary.recordFrame(frame, sequencer.check(frame.deviceId, frame.seq, frame.uptimeMs), Date.now()),
   onInvalid: (cause) => summary.recordInvalid(cause),
 });
 const dashboard = new DashboardServer(() => summary.snapshot(Date.now()));

@@ -32,6 +32,7 @@ describe('FleetSummary', () => {
     const snap = new FleetSummary(OPTS).snapshot(1000);
     expect(snap.reception).toEqual({
       accepted: 0, discarded: 0, lost: 0, invalid: 0, invalidByCause: {}, lossRate: 0, framesPerSecond: 0,
+      restarts: 0,
     });
     expect(snap.devices).toEqual({ total: 0, ok: 0, hot: 0, silent: 0, offline: 0 });
     expect(snap.list).toEqual([]);
@@ -122,5 +123,12 @@ describe('FleetSummary', () => {
     for (let i = 0; i < 20; i++) s.recordFrame(telemetry(1, 4000, i + 1), OK, 1500);
     for (let i = 0; i < 20; i++) s.recordFrame(telemetry(1, 4000, i + 21), OK, 2500);
     expect(s.snapshot(3500).reception.framesPerSecond).toBe(20); // 40 trames sur 2 s
+  });
+
+    it('compte les redémarrages signalés par le séquenceur', () => {
+    const s = new FleetSummary(OPTS);
+    s.recordFrame(telemetry(1, 4000, 1), OK, 1000);
+    s.recordFrame(telemetry(1, 4000, 1), { accepted: true, lost: 0, restarted: true }, 2000);
+    expect(s.snapshot(2100).reception.restarts).toBe(1);
   });
 });
