@@ -40,6 +40,11 @@ export class FaultInjector {
     return out;
   }
 
+  /** À appeler quand un appareil redémarre : une trame retenue d'avant serait incohérente. */
+  forget(deviceId: number): void {
+    this.held.delete(deviceId);
+  }
+
   private maybeAnomaly(frame: Frame): Frame {
     if (this.rng() >= this.opts.anomalyRate) return frame;
     return {

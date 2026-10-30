@@ -10,10 +10,16 @@ export class SimulatedDevice {
 
   constructor(
     readonly deviceId: number,
-    private readonly startedAt: number,
+    private  startedAt: number,
     private readonly rng: () => number = Math.random,
   ) {
     this.temp = 3500 + Math.floor(rng() * 2000); // 35 à 55 °C
+  }
+
+  /** Simule un redémarrage : le compteur seq et l'uptime repartent de zéro. */
+  restart(now: number): void {
+    this.seq = 0;
+    this.startedAt = now;
   }
 
   nextFrame(now: number): Frame {

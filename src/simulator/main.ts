@@ -15,6 +15,8 @@ const { values } = parseArgs({
     anomaly: { type: 'string', default: '0' },
     stop: { type: 'string', default: '0' },
     'stop-after': { type: 'string', default: '10' },
+    restart: { type: 'string', default: '0' },
+    'restart-every': { type: 'string', default: '15' },
     faults: { type: 'boolean', default: false },
     help: { type: 'boolean', short: 'h', default: false },
   },
@@ -32,6 +34,8 @@ if (values.help) {
       --anomaly <r>       probabilité de température anormale
       --stop <k>          k appareils s'arrêtent (ids 1 à k)
       --stop-after <s>    délai avant l'arrêt, en secondes (défaut 10)
+      --restart <k>       k appareils redémarrent périodiquement (derniers ids)
+      --restart-every <s> période de redémarrage en secondes (défaut 15)
       --faults            preset de démonstration (tous les défauts)`);
   process.exit(0);
 }
@@ -51,6 +55,8 @@ const port = num('port', values.port!, 1, 65535);
 const demo = values.faults;
 const stop = Math.min(devicesCount, num('stop', values.stop!, 0) || (demo ? 2 : 0));
 const stopAfterMs = num('stop-after', values['stop-after']!, 0) * 1000;
+const restart = Math.min(devicesCount, num('restart', values.restart!, 0) || (demo ? 2 : 0));
+const restartEveryMs = num('restart-every', values['restart-every']!, 1) * 1000;
 
 const injector = new FaultInjector({
   badChecksumRate: demo ? 0.03 : num('bad-checksum', values['bad-checksum']!, 0, 1),
@@ -61,12 +67,23 @@ const injector = new FaultInjector({
 
 const startedAt = Date.now();
 const devices = Array.from({ length: devicesCount }, (_, i) => new SimulatedDevice(i + 1, startedAt));
+let nextRestart = startedAt + restartEveryMs;
+
 const socket = dgram.createSocket('udp4');
 socket.on('error', (err) => console.error('[sim] erreur socket :', err.message));
 
 let sent = 0;
 const timer = setInterval(() => {
   const now = Date.now();
+
+  if (restart > 0 && now >= nextRestart) {
+    for (const device of devices.slice(devicesCount - restart)) {
+      device.restart(now);
+      injector.forget(device.deviceId);
+    }
+    nextRestart += restartEveryMs;
+  }
+
   for (const device of devices) {
     if (device.deviceId <= stop && now - startedAt >= stopAfterMs) continue; // appareil arrêté
     for (const datagram of injector.process(device.nextFrame(now))) {
