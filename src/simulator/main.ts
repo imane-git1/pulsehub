@@ -56,7 +56,7 @@ const injector = new FaultInjector({
   badChecksumRate: demo ? 0.03 : num('bad-checksum', values['bad-checksum']!, 0, 1),
   duplicateRate: demo ? 0.03 : num('duplicate', values.duplicate!, 0, 1),
   reorderRate: demo ? 0.03 : num('reorder', values.reorder!, 0, 1),
-  anomalyRate: demo ? 0.01 : num('anomaly', values.anomaly!, 0, 1),
+  anomalyRate: demo ? 0.001 : num('anomaly', values.anomaly!, 0, 1),
 });
 
 const startedAt = Date.now();
