@@ -1,6 +1,10 @@
+import type { SummaryOptions } from './fleet-summary';
+
 export interface HubConfig {
   udpHost: string;
   udpPort: number;
+  snapshotIntervalMs: number;
+  summary: SummaryOptions;
 }
 
 function envNumber(env: NodeJS.ProcessEnv, name: string, fallback: number): number {
@@ -15,5 +19,13 @@ export function loadHubConfig(env: NodeJS.ProcessEnv = process.env): HubConfig {
   return {
     udpHost: env.UDP_HOST ?? '0.0.0.0',
     udpPort: envNumber(env, 'UDP_PORT', 9000),
+    snapshotIntervalMs: envNumber(env, 'SNAPSHOT_INTERVAL_MS', 1000),
+    summary: {
+      hotThresholdCentiC: Math.round(envNumber(env, 'HOT_THRESHOLD_C', 70) * 100),
+      hotHoldMs: envNumber(env, 'HOT_HOLD_MS', 5000),
+      silentAfterMs: envNumber(env, 'SILENT_AFTER_MS', 2000),
+      offlineAfterMs: envNumber(env, 'OFFLINE_AFTER_MS', 10000),
+      rateWindowSeconds: envNumber(env, 'RATE_WINDOW_S', 5),
+    },
   };
 }
