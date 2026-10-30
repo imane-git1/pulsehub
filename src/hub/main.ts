@@ -1,3 +1,4 @@
+import { DashboardServer } from '../web/dashboard-server';
 import { loadHubConfig } from './config';
 import { FleetSummary } from './fleet-summary';
 import { Sequencer } from './sequencer';
@@ -12,17 +13,17 @@ const receiver = new UdpReceiver({
     summary.recordFrame(frame, sequencer.check(frame.deviceId, frame.seq), Date.now()),
   onInvalid: (cause) => summary.recordInvalid(cause),
 });
+const dashboard = new DashboardServer(() => summary.snapshot(Date.now()));
 
 await receiver.start(config.udpPort, config.udpHost);
+await dashboard.start(config.httpPort, config.httpHost);
 console.log(`Hub à l'écoute sur udp://${config.udpHost}:${config.udpPort}`);
+console.log(`Tableau de bord : http://${config.httpHost}:${config.httpPort}`);
 
-setInterval(() => {
-  const { reception: r, devices: d } = summary.snapshot(Date.now());
-  console.log(
-    `appareils=${d.total} (ok=${d.ok} chaud=${d.hot} silencieux=${d.silent} hors-ligne=${d.offline}) | ` +
-      `${r.framesPerSecond.toFixed(0)} tr/s acceptées=${r.accepted} écartées=${r.discarded} ` +
-      `perdues=${r.lost} (${(r.lossRate * 100).toFixed(1)} %) invalides=${r.invalid}`,
-  );
-}, config.snapshotIntervalMs);
+setInterval(() => dashboard.publish(), config.snapshotIntervalMs);
 
-process.on('SIGINT', () => { receiver.stop(); process.exit(0); });
+process.on('SIGINT', () => {
+  receiver.stop();
+  dashboard.stop();
+  process.exit(0);
+});
