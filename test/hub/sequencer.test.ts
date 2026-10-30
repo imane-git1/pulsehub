@@ -50,4 +50,31 @@ describe('Sequencer', () => {
     expect(s.check(2, 3)).toEqual({ accepted: true, lost: 0 });
     expect(s.check(1, 101)).toEqual({ accepted: true, lost: 0 });
   });
+
+    it('gère le retour à zéro de seq (uint32)', () => {
+    const s = new Sequencer();
+    s.check(1, 4_294_967_295);
+    expect(s.check(1, 0)).toEqual({ accepted: true, lost: 0 });
+    expect(s.check(1, 2)).toEqual({ accepted: true, lost: 1 });
+  });
+
+  it('écarte une trame en retard de part et d\'autre du retour à zéro', () => {
+    const s = new Sequencer();
+    s.check(1, 4_294_967_294);
+    expect(s.check(1, 1)).toEqual({ accepted: true, lost: 2 }); // 4294967295 et 0 manquent
+    expect(s.check(1, 4_294_967_295)).toEqual({ accepted: false, lost: 0 });
+  });
+
+  it('détecte le redémarrage d\'un appareil (uptime qui recule)', () => {
+    const s = new Sequencer();
+    s.check(1, 5000, 60_000);
+    expect(s.check(1, 1, 200)).toEqual({ accepted: true, lost: 0, restarted: true });
+    expect(s.check(1, 2, 250)).toEqual({ accepted: true, lost: 0 });
+  });
+
+  it('ne confond pas une trame en retard avec un redémarrage', () => {
+    const s = new Sequencer();
+    s.check(1, 14, 10_000);
+    expect(s.check(1, 12, 9_900)).toEqual({ accepted: false, lost: 0 });
+  });
 });
